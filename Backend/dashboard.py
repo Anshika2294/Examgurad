@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InterviewGuard — Admin Dashboard</title>
+<style>
+  :root {
+    --bg:       #080E1A;
+    --surface:  #0D1526;
+    --card:     #111C35;
+    --card2:    #162040;
+    --border:   #1E3060;
+    --border2:  #243870;
+    --accent:   #4F8EF7;
+    --green:    #22D98A;
+    --red:      #F75F5F;
+    --amber:    #F7C43A;
+    --text:     #E2EAF8;
+    --text2:    #B8C8E8;
+    --muted:    #4A5878;
+    --purple:   #9B72F5;
+    --teal:     #22D9C8;
+    --navy:     #0A1220;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  /* ── Layout ── */
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; }
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  .logo { padding: 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .logo-text { line-height: 1.2; }
+  .logo-text span:first-child { display: block; font-size: 13px; font-weight: 700; color: #fff; }
+  .logo-text span:last-child  { display: block; font-size: 11px; color: var(--accent); font-weight: 700; }
+
+  .nav { padding: 12px 8px; flex: 1; }
+  .nav-label { font-size: 9px; color: var(--muted); font-weight: 700; letter-spacing: 1px; padding: 8px 8px 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text2); transition: all .15s; margin-bottom: 2px; }
+  .nav-item:hover { background: var(--card); color: var(--text); }
+  .nav-item.active { background: var(--card2); color: var(--accent); }
+  .nav-item .icon { font-size: 15px; width: 20px; text-align: center; }
+  .nav-badge { margin-left: auto; background: var(--red); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; }
+
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); }
+  .server-status { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ── Topbar ── */
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .topbar-title { font-size: 16px; font-weight: 700; color: #fff; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1px solid; }
+  .badge-green { color: var(--green); border-color: var(--green); background: rgba(34,217,138,.08); }
+  .badge-red   { color: var(--red);   border-color: var(--red);   background: rgba(247,95,95,.08); }
+  .badge-amber { color: var(--amber); border-color: var(--amber); background: rgba(247,196,58,.08); }
+  .badge-blue  { color: var(--accent);border-color: var(--accent);background: rgba(79,142,247,.08); }
+
+  .btn { padding: 7px 16px; border-radius: 7px; border: none; cursor: pointer; font-size: 12px; font-weight: 700; transition: all .15s; }
+  .btn-primary { background: var(--accent); color: var(--navy); }
+  .btn-primary:hover { background: #3d7bf0; }
+  .btn-outline { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+  .btn-outline:hover { background: var(--card); color: var(--text); }
+  .btn-green { background: var(--green); color: var(--navy); }
+  .btn-sm { padding: 5px 12px; font-size: 11px; }
+
+  /* ── Content ── */
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* ── Pages ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Stats grid ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border2); border-radius: 10px; overflow: hidden; }
+  .stat-top  { height: 3px; }
+  .stat-body { padding: 16px; }
+  .stat-val  { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .stat-label{ font-size: 11px; color: var(--muted); }
+
+  /* ── Cards ── */
+  .card { background: var(--card); border: 1px solid var(--border2); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+  .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-title  { font-size: 11px; font-weight: 700; letter-spacing: .5px; }
+  .card-body   { padding: 16px 18px; }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: rgba(79,142,247,.04); }
+  .empty-row td { text-align: center; color: var(--muted); padding: 40px; font-size: 13px; }
+
+  /* ── Pill status ── */
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+  .pill-green { background: rgba(34,217,138,.12); color: var(--green); }
+  .pill-red   { background: rgba(247,95,95,.12);  color: var(--red); }
+  .pill-amber { background: rgba(247,196,58,.12); color: var(--amber); }
+  .pill-blue  { background: rgba(79,142,247,.12); color: var(--accent); }
+  .pill-purple{ background: rgba(155,114,245,.12);color: var(--purple); }
+
+  /* ── Event type colors ── */
+  .et-domain_blocked     { color: var(--red); }
+  .et-process_killed     { color: var(--red); }
+  .et-vpn_detected       { color: var(--amber); }
+  .et-screenshot_blocked { color: var(--amber); }
+  .et-hosts_tampered     { color: var(--red); }
+  .et-security_alert     { color: var(--amber); }
+  .et-session_start      { color: var(--green); }
+  .et-session_end        { color: var(--muted); }
+
+  /* ── Row 2 grid ── */
+  .row2 { display: grid; grid-template-columns: 1fr 340px; gap: 16px; margin-bottom: 16px; }
+
+  /* ── Filters ── */
+  .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-input { background: var(--card2); border: 1px solid var(--border2); color: var(--text); border-radius: 6px; padding: 6px 12px; font-size: 12px; outline: none; }
+  .filter-input:focus { border-color: var(--accent); }
+  select.filter-input option { background: var(--card2); }
+
+  /* ── Live feed ── */
+  .feed { max-height: 320px; overflow-y: auto; }
+  .feed-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .feed-time { font-size: 10px; color: var(--muted); white-space: nowrap; font-family: monospace; }
+  .feed-msg  { font-size: 12px; color: var(--text2); line-height: 1.4; }
+
+  /* ── Charts (pure CSS bar charts) ── */
+  .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 80px; padding: 0 4px; }
+  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height .5s ease; min-height: 2px; }
+  .bar-label { font-size: 9px; color: var(--muted); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40px; }
+
+  /* ── Modal ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; width: 640px; max-width: 95vw; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title  { font-size: 14px; font-weight: 700; color: #fff; }
+  .modal-close  { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 4px; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body   { padding: 20px; overflow-y: auto; flex: 1; }
+
+  /* ── Detail rows ── */
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .detail-item { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .detail-label { font-size: 9px; color: var(--muted); font-weight: 700; letter-spacing: .5px; margin-bottom: 4px; }
+  .detail-value { font-size: 13px; color: var(--text); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── Loading ── */
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .refresh-btn { background: none; border: 1px solid var(--border2); color: var(--text2); border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
+  .refresh-btn:hover { background: var(--card2); }
+
+  .accent-bar { height: 3px; background: linear-gradient(90deg, var(--accent), var(--purple)); }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">🛡</div>
+      <div class="logo-text">
+        <span>Interview</span>
+        <span>Guard</span>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">MAIN</div>
+      <div class="nav-item active" onclick="showPage('overview')">
+        <span class="icon">📊</span> Overview
+      </div>
+      <div class="nav-item" onclick="showPage('sessions')">
+        <span class="icon">🎯</span> Sessions
+        <span class="nav-badge" id="active-badge">0</span>
+      </div>
+      <div class="nav-item" onclick="showPage('events')">
+        <span class="icon">⚡</span> Events
+      </div>
+      <div class="nav-label">TOOLS</div>
+      <div class="nav-item" onclick="showPage('export')">
+        <span class="icon">📥</span> Export CSV
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="server-status">
+        <div class="status-dot" id="server-dot"></div>
+        <span id="server-url">localhost:8000</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px">
+        Auto-refresh: <span id="refresh-countdown">10s</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main">
+    <div class="accent-bar"></div>
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Overview</div>
+      <div class="topbar-right">
+        <span class="badge badge-green" id="health-badge">● Online</span>
+        <button class="btn btn-outline btn-sm" onclick="refreshAll()">↻ Refresh</button>
+        <button class="btn btn-primary btn-sm" onclick="showPage('export')">↓ Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- ══ OVERVIEW PAGE ══ -->
+      <div class="page active" id="page-overview">
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-top" style="background:var(--accent)"></div>
+            <div class="stat-body">
+              <div class="stat-val" style="color:var(--accent)" id="ov-total">—</div>
+              <div class="stat-label">Total Sessions</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top" style="background:var(--green)"></div>
+            <div class="stat-body">
+              <div class="stat-val" style="color:var(--green)" id="ov-active">—</div>
+              <div class="stat-label">Active Now</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top" style="background:var(--red)"></div>
+            <div class="stat-body">
+              <div class="stat-val" style="color:var(--red)" id="ov-events">—</div>
+              <div class="stat-label">Total Events</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top" style="background:var(--amber)"></div>
+            <div class="stat-body">
+              <div class="stat-val" style="color:var(--amber)" id="ov-threats">—</div>
+              <div class="stat-label">Threat Events</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row2">
+          <!-- Active sessions -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" style="color:var(--green)">● ACTIVE SESSIONS</span>
+              <button class="refresh-btn" onclick="loadOverview()">↻</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th>CANDIDATE</th><th>EMAIL</th><th>STARTED</th><th>STATUS</th><th></th>
+                </tr></thead>
+                <tbody id="active-sessions-tbody">
+                  <tr class="empty-row"><td colspan="5">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Live feed -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" style="color:var(--accent)">⚡ LIVE EVENT FEED</span>
+              <span class="spinner" id="feed-spinner" style="display:none"></span>
+            </div>
+            <div class="card-body" style="padding:8px 14px">
+              <div class="feed" id="live-feed">
+                <div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event type breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title" style="color:var(--purple)">📊 EVENT BREAKDOWN</span>
+          </div>
+          <div class="card-body">
+            <div id="event-breakdown" style="display:flex;gap:12px;flex-wrap:wrap"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ══ SESSIONS PAGE ══ -->
+      <div class="page" id="page-sessions">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title" style="color:var(--accent)">🎯 ALL SESSIONS</span>
+            <div class="filters">
+              <input class="filter-input" id="sess-search" placeholder="Search candidate..." oninput="filterSessions()">
+              <select class="filter-input" id="sess-status" onchange="filterSessions()">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="ended">Ended</option>
+              </select>
+              <button class="refresh-btn" onclick="loadSessions()">↻ Refresh</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>SESSION ID</th><th>CANDIDATE</th><th>EMAIL</th>
+                <th>STARTED</th><th>ENDED</th><th>EVENTS</th><th>STATUS</th><th></th>
+              </tr></thead>
+              <tbody id="sessions-tbody">
+                <tr class="empty-row"><td colspan="8">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ EVENTS PAGE ══ -->
+      <div class="page" id="page-events">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title" style="color:var(--red)">⚡ ALL SECURITY EVENTS</span>
+            <div class="filters">
+              <input class="filter-input" id="ev-search" placeholder="Search..." oninput="filterEvents()">
+              <select class="filter-input" id="ev-type" onchange="filterEvents()">
+                <option value="">All Types</option>
+                <option value="domain_blocked">Domain Blocked</option>
+                <option value="process_killed">Process Killed</option>
+                <option value="vpn_detected">VPN Detected</option>
+                <option value="screenshot_blocked">Screenshot Blocked</option>
+                <option value="hosts_tampered">Hosts Tampered</option>
+                <option value="security_alert">Security Alert</option>
+              </select>
+              <button class="refresh-btn" onclick="loadEvents()">↻ Refresh</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>TIME</th><th>SESSION</th><th>CANDIDATE</th>
+                <th>EVENT TYPE</th><th>DETAIL</th>
+              </tr></thead>
+              <tbody id="events-tbody">
+                <tr class="empty-row"><td colspan="5">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ EXPORT PAGE ══ -->
+      <div class="page" id="page-export">
+        <div style="max-width:560px">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" style="color:var(--green)">📥 EXPORT DATA</span>
+            </div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+
+              <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Sessions CSV</div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:12px">All sessions with candidate info, start/end times and status</div>
+                <button class="btn btn-green" onclick="exportCSV('sessions')">↓ Download Sessions CSV</button>
+              </div>
+
+              <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Events CSV</div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:12px">All security events with timestamps, types and details</div>
+                <button class="btn btn-primary" onclick="exportCSV('events')">↓ Download Events CSV</button>
+              </div>
+
+              <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Full Report CSV</div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Sessions + all their events combined in one file</div>
+                <button class="btn" style="background:var(--amber);color:var(--navy)" onclick="exportCSV('full')">↓ Download Full Report</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ── Session Detail Modal ── -->
+<div class="modal-overlay" id="session-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Session Detail</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">Loading...</div>
+  </div>
+</div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+
+// ── State ──────────────────────────────────────────────────────
+let allSessions = [];
+let allEvents   = [];
+let countdown   = 10;
+
+// ── Navigation ────────────────────────────────────────────────
+const PAGE_TITLES = {
+  overview: 'Overview',
+  sessions: 'All Sessions',
+  events:   'Security Events',
+  export:   'Export Data',
+};
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.toLowerCase().includes(PAGE_TITLES[name].split(' ')[0].toLowerCase()))
+      n.classList.add('active');
+  });
+  document.getElementById('page-title').textContent = PAGE_TITLES[name];
+  if (name === 'sessions') loadSessions();
+  if (name === 'events')   loadEvents();
+}
+
+// ── API calls ─────────────────────────────────────────────────
+async function apiFetch(path) {
+  const r = await fetch(API + path);
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+// ── Health check ──────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    await apiFetch('/health');
+    document.getElementById('health-badge').textContent = '● Online';
+    document.getElementById('health-badge').className = 'badge badge-green';
+    document.getElementById('server-dot').style.background = 'var(--green)';
+  } catch {
+    document.getElementById('health-badge').textContent = '● Offline';
+    document.getElementById('health-badge').className = 'badge badge-red';
+    document.getElementById('server-dot').style.background = 'var(--red)';
+  }
+}
+
+// ── Overview ──────────────────────────────────────────────────
+async function loadOverview() {
+  try {
+    const [sessData, evData] = await Promise.all([
+      apiFetch('/sessions?limit=200'),
+      apiFetch('/events?limit=200'),
+    ]);
+
+    allSessions = sessData.sessions || [];
+    allEvents   = evData.events   || [];
+
+    const active   = allSessions.filter(s => s.is_active);
+    const threats  = allEvents.filter(e =>
+      ['domain_blocked','process_killed','vpn_detected',
+       'screenshot_blocked','hosts_tampered'].includes(e.event_type));
+
+    document.getElementById('ov-total').textContent   = sessData.total;
+    document.getElementById('ov-active').textContent  = active.length;
+    document.getElementById('ov-events').textContent  = evData.total;
+    document.getElementById('ov-threats').textContent = threats.length;
+    document.getElementById('active-badge').textContent = active.length;
+
+    // Active sessions table
+    const tbody = document.getElementById('active-sessions-tbody');
+    if (active.length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No active sessions</td></tr>';
+    } else {
+      tbody.innerHTML = active.map(s => `
+        <tr>
+          <td><strong>${esc(s.candidate_name)}</strong></td>
+          <td style="color:var(--muted)">${esc(s.candidate_email)}</td>
+          <td style="color:var(--muted);font-size:11px">${fmtTime(s.started_at)}</td>
+          <td><span class="pill pill-green">● Active</span></td>
+          <td><button class="btn btn-outline btn-sm" onclick="openSession('${s.session_id}')">View</button></td>
+        </tr>`).join('');
+    }
+
+    // Live feed (last 20 events)
+    const feed = document.getElementById('live-feed');
+    const recent = [...allEvents].slice(0, 20);
+    if (recent.length === 0) {
+      feed.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">No events yet</div>';
+    } else {
+      feed.innerHTML = recent.map(e => `
+        <div class="feed-item">
+          <div class="feed-dot" style="background:${eventColor(e.event_type)}"></div>
+          <div>
+            <div class="feed-time">${fmtTime(e.timestamp)}</div>
+            <div class="feed-msg">
+              <span class="et-${e.event_type}">${fmtEventType(e.event_type)}</span>
+              ${e.candidate_name ? `<span style="color:var(--muted)"> · ${esc(e.candidate_name)}</span>` : ''}
+              ${e.detail ? `<div style="color:var(--muted);font-size:11px">${esc(e.detail)}</div>` : ''}
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    // Event breakdown
+    const counts = {};
+    allEvents.forEach(e => counts[e.event_type] = (counts[e.event_type]||0) + 1);
+    const maxVal = Math.max(...Object.values(counts), 1);
+    document.getElementById('event-breakdown').innerHTML =
+      Object.entries(counts).map(([type, count]) => `
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;min-width:140px">
+          <div style="font-size:22px;font-weight:700;color:${eventColor(type)}">${count}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtEventType(type)}</div>
+        </div>`).join('') || '<div style="color:var(--muted);font-size:12px">No events recorded</div>';
+
+  } catch(e) {
+    console.error('loadOverview error:', e);
+  }
+}
+
+// ── Sessions page ─────────────────────────────────────────────
+async function loadSessions() {
+  try {
+    const data = await apiFetch('/sessions?limit=200');
+    allSessions = data.sessions || [];
+    renderSessions(allSessions);
+  } catch(e) {
+    document.getElementById('sessions-tbody').innerHTML =
+      '<tr class="empty-row"><td colspan="8">Failed to load sessions</td></tr>';
+  }
+}
+
+function renderSessions(list) {
+  const tbody = document.getElementById('sessions-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No sessions found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(s => `
+    <tr>
+      <td style="font-family:monospace;font-size:11px;color:var(--accent)">${s.session_id}</td>
+      <td><strong>${esc(s.candidate_name)}</strong></td>
+      <td style="color:var(--muted)">${esc(s.candidate_email||'')}</td>
+      <td style="font-size:11px;color:var(--muted)">${fmtTime(s.started_at)}</td>
+      <td style="font-size:11px;color:var(--muted)">${s.ended_at ? fmtTime(s.ended_at) : '—'}</td>
+      <td><span style="color:var(--red);font-weight:700">${s.event_count}</span></td>
+      <td>${s.is_active
+        ? '<span class="pill pill-green">● Active</span>'
+        : '<span class="pill pill-red">Ended</span>'}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openSession('${s.session_id}')">Detail</button></td>
+    </tr>`).join('');
+}
+
+function filterSessions() {
+  const q      = document.getElementById('sess-search').value.toLowerCase();
+  const status = document.getElementById('sess-status').value;
+  renderSessions(allSessions.filter(s => {
+    const matchQ = !q || s.candidate_name.toLowerCase().includes(q) ||
+                        (s.candidate_email||'').toLowerCase().includes(q);
+    const matchS = !status ||
+      (status === 'active' && s.is_active) ||
+      (status === 'ended'  && !s.is_active);
+    return matchQ && matchS;
+  }));
+}
+
+// ── Events page ───────────────────────────────────────────────
+async function loadEvents() {
+  try {
+    const data = await apiFetch('/events?limit=500');
+    allEvents = data.events || [];
+    renderEvents(allEvents);
+  } catch {
+    document.getElementById('events-tbody').innerHTML =
+      '<tr class="empty-row"><td colspan="5">Failed to load events</td></tr>';
+  }
+}
+
+function renderEvents(list) {
+  const tbody = document.getElementById('events-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No events found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(e => `
+    <tr>
+      <td style="font-size:11px;color:var(--muted);font-family:monospace">${fmtTime(e.timestamp)}</td>
+      <td style="font-family:monospace;font-size:11px;color:var(--accent)">${e.session_id||'—'}</td>
+      <td>${esc(e.candidate_name||'—')}</td>
+      <td><span class="et-${e.event_type}">${fmtEventType(e.event_type)}</span></td>
+      <td style="color:var(--muted);font-size:12px">${esc(e.detail||'')}</td>
+    </tr>`).join('');
+}
+
+function filterEvents() {
+  const q    = document.getElementById('ev-search').value.toLowerCase();
+  const type = document.getElementById('ev-type').value;
+  renderEvents(allEvents.filter(e => {
+    const matchQ = !q || (e.candidate_name||'').toLowerCase().includes(q) ||
+                        (e.detail||'').toLowerCase().includes(q) ||
+                        (e.session_id||'').toLowerCase().includes(q);
+    const matchT = !type || e.event_type === type;
+    return matchQ && matchT;
+  }));
+}
+
+// ── Session detail modal ──────────────────────────────────────
+async function openSession(sessionId) {
+  document.getElementById('session-modal').classList.add('open');
+  document.getElementById('modal-title').textContent = `Session: ${sessionId}`;
+  document.getElementById('modal-body').innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
+
+  try {
+    const [sess, evts] = await Promise.all([
+      apiFetch(`/sessions/${sessionId}`),
+      apiFetch(`/events?session_id=${sessionId}&limit=200`),
+    ]);
+
+    const events = evts.events || [];
+    const threats = events.filter(e =>
+      ['domain_blocked','process_killed','vpn_detected',
+       'screenshot_blocked','hosts_tampered'].includes(e.event_type));
+
+    document.getElementById('modal-body').innerHTML = `
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label">CANDIDATE</div>
+          <div class="detail-value">${esc(sess.candidate_name)}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">EMAIL</div>
+          <div class="detail-value">${esc(sess.candidate_email||'—')}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">STARTED</div>
+          <div class="detail-value">${fmtTime(sess.started_at)}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">ENDED</div>
+          <div class="detail-value">${sess.ended_at ? fmtTime(sess.ended_at) : '—'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">STATUS</div>
+          <div class="detail-value">${sess.is_active
+            ? '<span class="pill pill-green">● Active</span>'
+            : '<span class="pill pill-red">Ended</span>'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">THREATS</div>
+          <div class="detail-value" style="color:var(--red);font-weight:700">${threats.length}</div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:10px">
+        SESSION EVENTS (${events.length})
+      </div>
+      ${events.length === 0
+        ? '<div style="color:var(--muted);font-size:12px">No events recorded</div>'
+        : `<div style="max-height:320px;overflow-y:auto">
+            ${events.map(e => `
+              <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);align-items:flex-start">
+                <div style="width:8px;height:8px;border-radius:50%;background:${eventColor(e.event_type)};margin-top:4px;flex-shrink:0"></div>
+                <div>
+                  <div style="font-size:10px;color:var(--muted);font-family:monospace">${fmtTime(e.timestamp)}</div>
+                  <div style="font-size:12px"><span class="et-${e.event_type}">${fmtEventType(e.event_type)}</span>
+                    ${e.detail ? `<span style="color:var(--muted)"> — ${esc(e.detail)}</span>` : ''}
+                  </div>
+                </div>
+              </div>`).join('')}
+          </div>`}
+      <div style="margin-top:16px">
+        <button class="btn btn-outline btn-sm" onclick="exportSessionCSV('${sessionId}')">↓ Export This Session</button>
+      </div>`;
+  } catch(err) {
+    document.getElementById('modal-body').innerHTML = `<div style="color:var(--red)">Failed to load session: ${err}</div>`;
+  }
+}
+
+function closeModal() {
+  document.getElementById('session-modal').classList.remove('open');
+}
+
+// ── CSV Export ───────────────────────────────────────────────
+function toCSV(headers, rows) {
+  const escape = v => `"${String(v||'').replace(/"/g,'""')}"`;
+  return [headers.map(escape).join(','),
+          ...rows.map(r => r.map(escape).join(','))].join('\n');
+}
+
+function downloadCSV(filename, csv) {
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+async function exportCSV(type) {
+  if (type === 'sessions') {
+    const data = await apiFetch('/sessions?limit=1000');
+    const rows = (data.sessions||[]).map(s => [
+      s.session_id, s.candidate_name, s.candidate_email||'',
+      fmtTime(s.started_at), s.ended_at ? fmtTime(s.ended_at) : '',
+      s.is_active ? 'active' : 'ended', s.event_count
+    ]);
+    downloadCSV('sessions.csv', toCSV(
+      ['session_id','candidate_name','email','started_at','ended_at','status','event_count'], rows));
+  }
+  else if (type === 'events') {
+    const data = await apiFetch('/events?limit=5000');
+    const rows = (data.events||[]).map(e => [
+      fmtTime(e.timestamp), e.session_id||'', e.candidate_name||'',
+      e.event_type, e.detail||''
+    ]);
+    downloadCSV('events.csv', toCSV(
+      ['timestamp','session_id','candidate_name','event_type','detail'], rows));
+  }
+  else if (type === 'full') {
+    const [sData, eData] = await Promise.all([
+      apiFetch('/sessions?limit=1000'),
+      apiFetch('/events?limit=5000'),
+    ]);
+    const rows = (eData.events||[]).map(e => {
+      const s = (sData.sessions||[]).find(s => s.session_id === e.session_id) || {};
+      return [
+        fmtTime(e.timestamp), e.session_id||'',
+        s.candidate_name||e.candidate_name||'', s.candidate_email||'',
+        e.event_type, e.detail||'',
+        s.is_active ? 'active' : 'ended'
+      ];
+    });
+    downloadCSV('interviewguard_report.csv', toCSV(
+      ['timestamp','session_id','candidate_name','email','event_type','detail','session_status'], rows));
+  }
+}
+
+async function exportSessionCSV(sessionId) {
+  const data = await apiFetch(`/events?session_id=${sessionId}&limit=1000`);
+  const sess = await apiFetch(`/sessions/${sessionId}`);
+  const rows = (data.events||[]).map(e => [
+    fmtTime(e.timestamp), e.event_type, e.detail||''
+  ]);
+  downloadCSV(`session_${sessionId}.csv`,
+    toCSV(['timestamp','event_type','detail'], rows));
+}
+
+// ── Utils ─────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fmtTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (isNaN(d)) return ts;
+  return d.toLocaleString();
+}
+
+function fmtEventType(t) {
+  return (t||'').replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function eventColor(type) {
+  const map = {
+    domain_blocked:     'var(--red)',
+    process_killed:     'var(--red)',
+    hosts_tampered:     'var(--red)',
+    vpn_detected:       'var(--amber)',
+    screenshot_blocked: 'var(--amber)',
+    security_alert:     'var(--amber)',
+    session_start:      'var(--green)',
+    session_end:        'var(--muted)',
+  };
+  return map[type] || 'var(--accent)';
+}
+
+// ── Auto-refresh ──────────────────────────────────────────────
+function refreshAll() {
+  checkHealth();
+  loadOverview();
+  countdown = 10;
+}
+
+setInterval(() => {
+  countdown--;
+  document.getElementById('refresh-countdown').textContent = countdown + 's';
+  if (countdown <= 0) {
+    refreshAll();
+    countdown = 10;
+  }
+}, 1000);
+
+// Close modal on overlay click
+document.getElementById('session-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ── Init ──────────────────────────────────────────────────────
+refreshAll();
+</script>
+</body>
+</html>
